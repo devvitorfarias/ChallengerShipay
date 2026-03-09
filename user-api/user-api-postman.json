@@ -1,0 +1,415 @@
+{
+  "info": {
+    "name": "User API",
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "description": "Collection para testar a API REST de criação de usuários (Spring Boot + Java 21)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "01 - Criar usuário completo (com senha e claims)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status deve ser 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Header Location deve estar presente', function () {",
+                  "    pm.response.to.have.header('Location');",
+                  "});",
+                  "",
+                  "pm.test('Response deve ter id', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.id).to.be.a('number');",
+                  "    pm.collectionVariables.set('userId', json.id);",
+                  "});",
+                  "",
+                  "pm.test('passwordGenerated deve ser false', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.passwordGenerated).to.eql(false);",
+                  "});",
+                  "",
+                  "pm.test('Response NAO deve conter campo password', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.not.have.property('password');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"João Silva\",\n  \"email\": \"joao.silva@example.com\",\n  \"roleId\": 1,\n  \"password\": \"Senha@1234\",\n  \"claimIds\": [1, 2]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users"]
+            },
+            "description": "Cria usuário informando todos os campos, incluindo senha e claims."
+          }
+        },
+        {
+          "name": "02 - Criar usuário sem senha (gerada automaticamente)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status deve ser 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('passwordGenerated deve ser true', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.passwordGenerated).to.eql(true);",
+                  "});",
+                  "",
+                  "pm.test('Response NAO deve conter campo password', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.not.have.property('password');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Maria Souza\",\n  \"email\": \"maria.souza@example.com\",\n  \"roleId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users"]
+            },
+            "description": "Cria usuário sem informar senha. O serviço deve gerar automaticamente e passwordGenerated = true."
+          }
+        },
+        {
+          "name": "03 - Criar usuário sem claims (apenas campos obrigatórios)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status deve ser 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('claims deve ser array vazio', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.claims).to.be.an('array').that.is.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Carlos Oliveira\",\n  \"email\": \"carlos.oliveira@example.com\",\n  \"roleId\": 2,\n  \"password\": \"Senha@5678\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users"]
+            },
+            "description": "Cria usuário apenas com os campos obrigatórios (nome, email, roleId) e senha. Sem claims."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Erros - Validação (4xx)",
+      "item": [
+        {
+          "name": "04 - Email duplicado → 409 Conflict",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status deve ser 409 Conflict', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});",
+                  "",
+                  "pm.test('Response deve ter campo detail', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.detail).to.include('E-mail já cadastrado');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"João Silva\",\n  \"email\": \"joao.silva@example.com\",\n  \"roleId\": 1,\n  \"password\": \"Senha@1234\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users"]
+            },
+            "description": "Tenta criar usuário com e-mail já existente. Execute após o teste 01."
+          }
+        },
+        {
+          "name": "05 - Role inexistente → 404 Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status deve ser 404 Not Found', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test('Response deve ter title de not-found', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.title).to.eql('Recurso não encontrado');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ana Lima\",\n  \"email\": \"ana.lima@example.com\",\n  \"roleId\": 9999,\n  \"password\": \"Senha@9999\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users"]
+            },
+            "description": "Tenta criar usuário com roleId que não existe no banco."
+          }
+        },
+        {
+          "name": "06 - Campos obrigatórios ausentes → 422 Unprocessable Entity",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status deve ser 422 Unprocessable Entity', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "",
+                  "pm.test('Response deve ter campo errors com os campos inválidos', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.errors).to.be.an('object');",
+                  "    pm.expect(json.errors).to.have.property('name');",
+                  "    pm.expect(json.errors).to.have.property('email');",
+                  "    pm.expect(json.errors).to.have.property('roleId');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users"]
+            },
+            "description": "Envia body vazio. Todos os campos obrigatórios devem ser reportados no campo errors."
+          }
+        },
+        {
+          "name": "07 - Email inválido → 422 Unprocessable Entity",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status deve ser 422', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "",
+                  "pm.test('errors deve apontar para campo email', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.errors).to.have.property('email');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Teste Inválido\",\n  \"email\": \"isso-nao-eh-email\",\n  \"roleId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users"]
+            },
+            "description": "Envia e-mail em formato inválido."
+          }
+        },
+        {
+          "name": "08 - Senha muito curta → 422 Unprocessable Entity",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status deve ser 422', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "",
+                  "pm.test('errors deve apontar para campo password', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.errors).to.have.property('password');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Teste Senha Curta\",\n  \"email\": \"teste.curta@example.com\",\n  \"roleId\": 1,\n  \"password\": \"123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users"]
+            },
+            "description": "Envia senha menor que 8 caracteres. Deve retornar erro de validação."
+          }
+        },
+        {
+          "name": "09 - Nome vazio → 422 Unprocessable Entity",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status deve ser 422', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "",
+                  "pm.test('errors deve apontar para campo name', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.errors).to.have.property('name');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"\",\n  \"email\": \"teste.nome@example.com\",\n  \"roleId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users"]
+            },
+            "description": "Envia nome em branco."
+          }
+        },
+        {
+          "name": "10 - Claim inexistente ou inativa → 404 Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status deve ser 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Teste Claim Inválida\",\n  \"email\": \"teste.claim@example.com\",\n  \"roleId\": 1,\n  \"claimIds\": [9999, 8888]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users"]
+            },
+            "description": "Tenta criar usuário com claims que não existem ou estão inativas."
+          }
+        }
+      ]
+    }
+  ]
+}
